@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Ivan Gurin — Product Builder</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/style.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/style.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{fontFamily:{sans:["Geist","system-ui","sans-serif"],mono:["Geist Mono","monospace"]}}}}</script>
+<script src="https://unpkg.com/@studio-freight/lenis@1.0.39/dist/lenis.min.js"></script>
+<style>
+:root{--bg:#09090b;--s:#111113;--b:rgba(255,255,255,.07);--acc:#8b5cf6;--muted:#555;--sp:cubic-bezier(0.16,1,0.3,1)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{max-width:100vw;overflow-x:hidden}
+body{background:var(--bg);color:#f0f0f0;font-family:"Geist",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+html[lang="en"] .ru{display:none!important}
+html[lang="ru"] .en{display:none!important}
+/* GRAIN */
+#grain{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.03;mix-blend-mode:screen}
+/* SCROLL PROGRESS */
+#spb{position:fixed;top:0;left:0;height:2px;width:0%;background:var(--acc);z-index:10000;transition:width .08s linear}
+/* CURSOR */
+#cur{position:fixed;width:8px;height:8px;background:#fff;border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);transition:width .2s,height .2s,opacity .2s}
+#cur-ring{position:fixed;width:36px;height:36px;border:1px solid rgba(255,255,255,.4);border-radius:50%;pointer-events:none;z-index:99998;transform:translate(-50%,-50%);transition:width .3s var(--sp),height .3s var(--sp),background .3s;display:flex;align-items:center;justify-content:center}
+#cur-ring span{font-size:15px;font-family:"Geist Mono",monospace;color:#fff;opacity:0;transition:opacity .2s;pointer-events:none}
+body.c-card #cur-ring{width:72px;height:72px;background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.5)}
+body.c-card #cur-ring span{opacity:1}
+body.c-link #cur-ring{width:22px;height:22px;background:rgba(255,255,255,.1)}
+/* HEADER */
+#hdr{position:fixed;top:0;left:0;right:0;z-index:5000;padding:18px 40px;display:flex;align-items:center;justify-content:space-between;transition:transform .4s var(--sp)}
+#hdr.hidden{transform:translateY(-110%)}
+.spill{display:inline-flex;align-items:center;gap:10px;padding:7px 16px;border:1px solid var(--b);border-radius:999px;background:rgba(9,9,11,.88);backdrop-filter:blur(16px);font-size:20px;color:var(--muted);font-family:"Geist Mono",monospace;letter-spacing:.04em}
+.pd-w{position:relative;width:8px;height:8px;flex-shrink:0}
+.pd{position:absolute;inset:0;border-radius:50%;background:rgba(139,92,246,1);box-shadow:0 0 6px rgba(139,92,246,.6)}
+.pr{position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(139,92,246,.6);animation:pr 2.4s ease-out infinite}
+@keyframes pr{0%{transform:scale(.5);opacity:.9}100%{transform:scale(2);opacity:0}}
+.ltog{display:flex;border:1px solid var(--b);border-radius:999px;overflow:hidden;background:rgba(9,9,11,.88);backdrop-filter:blur(16px)}
+.lbtn{padding:7px 14px;font-size:20px;font-family:"Geist Mono",monospace;color:var(--muted);cursor:none;border:none;background:transparent;transition:background .2s,color .2s}
+.lbtn.active{background:rgba(255,255,255,.1);color:#fff}
+/* HERO */
+#hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;padding:100px 40px 48px;max-width:1320px;margin:0 auto}
+.h1{font-size:clamp(44px,7.5vw,88px);font-weight:700;letter-spacing:-.04em;line-height:1.01;margin-bottom:14px;color:#fff}
+.hsub{font-size:clamp(16px,2.2vw,24px);color:rgba(255,255,255,.7);margin-bottom:18px;font-weight:400}
+.hbod{font-size:15px;line-height:1.8;color:rgba(255,255,255,.75);max-width:460px;margin-bottom:28px}
+.hbod strong{color:rgba(255,255,255,.75);font-weight:500}
+/* MARQUEE */
+.mwrap{overflow:hidden;background:rgba(255,255,255,.02);border-top:1px solid var(--b);border-bottom:1px solid var(--b);padding:8px 0;margin:0 0 64px 0;width:100%}
+.mtrack{display:flex;width:max-content;animation:mq 36s linear infinite}
+.mwrap:hover .mtrack{animation-play-state:paused}
+.mtrack span{font-family:"Geist Mono",monospace;font-size:16px;letter-spacing:.12em;color:rgba(255,255,255,.18);padding:0 24px;white-space:nowrap;text-transform:uppercase}
+@keyframes mq{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+/* BUTTONS */
+.bp{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;background:var(--acc);color:#fff;border-radius:999px;font-size:23px;font-weight:600;cursor:none;border:none;text-decoration:none;transition:transform .25s var(--sp),box-shadow .25s;box-shadow:0 0 0 0 rgba(139,92,246,0)}
+.bp:hover{transform:scale(1.04);box-shadow:0 0 28px rgba(139,92,246,.4)}
+.bp .arr{transition:transform .25s var(--sp);display:inline-block}
+.bp:hover .arr{transform:translateX(4px)}
+.bo{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;background:transparent;color:#555;border-radius:999px;font-size:23px;cursor:none;border:1px solid rgba(255,255,255,.1);text-decoration:none;transition:border-color .25s,color .25s,transform .25s var(--sp)}
+.bo:hover{border-color:rgba(255,255,255,.35);color:#fff;transform:scale(1.04)}
+/* PHOTO */
+.phwrap{display:flex;flex-direction:column;align-items:center;gap:24px}
+.phframe{width:100%;max-width:560px;aspect-ratio:3/4;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(255,255,255,.02));padding:1px;transition:transform .5s var(--sp)}
+.phframe:hover{transform:scale(1.02)}
+.phframe img{width:100%;height:100%;object-fit:cover;object-position:top;transform:scale(1.1);border-radius:17px;filter:grayscale(.15) brightness(.9)}
+/* TIMEZONE */
+.tzw{display:inline-flex;align-items:center;gap:10px;font-family:"Geist Mono",monospace;font-size:20px;color:var(--muted);background:rgba(255,255,255,.03);border:1px solid var(--b);border-radius:10px;padding:9px 14px}
+.tzd{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tzd.g{background:rgba(139,92,246,1);box-shadow:0 0 6px rgba(34,197,94,.5)}
+.tzd.gr{background:rgba(255,255,255,.2)}
+@keyframes blk{0%,49%{opacity:1}50%,100%{opacity:0}}
+.blink{animation:blk 1s step-end infinite}
+/* SECTIONS */
+.psec{padding:72px 0;max-width:1800px;margin:0 auto;padding-left:40px;padding-right:40px}
+.slabel{font-family:"Geist Mono",monospace;font-size:18px;text-transform:uppercase;letter-spacing:.16em;color:rgba(255,255,255,.45);padding-left:12px;border-left:2px solid rgba(139,92,246,.5);margin-bottom:44px}
+/* CARDS */
+.card{position:relative;background:var(--s);border:1px solid var(--b);border-radius:14px;overflow:hidden;transition:border-color .3s,opacity .4s,filter .4s,box-shadow .4s;cursor:none}
+.card::before{content:"";position:absolute;inset:-1px;border-radius:inherit;background:radial-gradient(500px circle at var(--mx,50%) var(--my,50%),rgba(139,92,246,.12),transparent 40%);opacity:0;transition:opacity .4s;pointer-events:none;z-index:0}
+.card:hover::before{opacity:1}
+.card:hover{border-color:rgba(139,92,246,.35)}
+.card>*{position:relative;z-index:1}
+/* PROJECT GRID */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.pcard{padding:22px;display:flex;flex-direction:column;gap:14px;min-height:340px}
+.pbadge{display:inline-flex;align-items:center;gap:5px;font-family:"Geist Mono",monospace;font-size:16px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);border:1px solid var(--b);border-radius:999px;padding:3px 10px;width:fit-content}
+.ptitle{font-size:29px;font-weight:600;letter-spacing:-.02em;color:#fff}
+.pdesc{font-size:20px;color:rgba(255,255,255,.8);line-height:1.65}
+.mrow{display:flex;gap:6px;flex-wrap:wrap}
+.mchip{font-family:"Geist Mono",monospace;font-size:18px;color:var(--acc);background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:5px;padding:3px 9px}
+.vcase{font-size:18px;color:rgba(255,255,255,.45);font-family:"Geist Mono",monospace;letter-spacing:.06em;transition:color .3s;margin-top:auto}
+.card:hover .vcase{color:rgba(139,92,246,.8)}
+/* FLOW MOCK */
+.fmock{background-image:radial-gradient(circle,rgba(255,255,255,.04) 1px,transparent 1px);background-size:18px 18px;border-radius:10px;border:1px solid var(--b);padding:16px;display:flex;align-items:center;justify-content:center;gap:16px;height:90px;transition:transform .4s var(--sp)}
+.card:hover .fmock{transform:scale(1.03)}
+.fnode{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:15px;font-family:"Geist Mono",monospace;color:rgba(255,255,255,.55)}
+.ficon{width:30px;height:30px;border-radius:7px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;justify-content:center;font-size:21px}
+.fdots{display:flex;gap:3px;align-items:center}
+.fdots span{width:3px;height:3px;border-radius:50%;background:rgba(139,92,246,.4);animation:fp 1.8s ease infinite}
+.fdots span:nth-child(2){animation-delay:.25s}
+.fdots span:nth-child(3){animation-delay:.5s}
+@keyframes fp{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.8)}}
+/* BAR CHART MOCK */
+.bchart{background-image:radial-gradient(circle,rgba(255,255,255,.04) 1px,transparent 1px);background-size:18px 18px;border-radius:10px;border:1px solid var(--b);padding:12px;height:90px;display:flex;align-items:flex-end;gap:3px;transition:transform .4s var(--sp)}
+.card:hover .bchart{transform:scale(1.03)}
+.bbar{flex:1;border-radius:2px 2px 0 0;background:rgba(139,92,246,.18);transition:background .3s}
+.card:hover .bbar:last-child{background:rgba(139,92,246,.8)}
+.card:hover .bbar:nth-last-child(2){background:rgba(139,92,246,.55)}
+.card:hover .bbar:nth-last-child(3){background:rgba(139,92,246,.35)}
+/* BLOCK MOCK (hardware cards) */
+.blkmock{background-image:radial-gradient(circle,rgba(255,255,255,.04) 1px,transparent 1px);background-size:18px 18px;border-radius:10px;border:1px solid var(--b);padding:16px;height:90px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:"Geist Mono",monospace;font-size:16px;color:rgba(255,255,255,.45);transition:transform .4s var(--sp)}
+.card:hover .blkmock{transform:scale(1.03)}
+.blkarr{color:rgba(139,92,246,.5);font-size:23px;transition:color .3s}
+.card:hover .blkarr{color:rgba(139,92,246,.9)}
+/* TIMELINE EXPERIENCE */
+.tl{padding-left:28px;position:relative}
+.tl::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:1px;background:rgba(255,255,255,.06)}
+.tl-entry{position:relative;margin-bottom:6px}
+.tl-dot{position:absolute;left:-32px;top:18px;width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px rgba(139,92,246,.5);transition:box-shadow .3s}
+.tl-entry:hover .tl-dot{box-shadow:0 0 18px rgba(139,92,246,.8)}
+.tl-hdr{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:none;user-select:none;border-radius:10px;transition:background .2s}
+.tl-hdr:hover{background:rgba(255,255,255,.03)}
+.tl-chv{font-size:18px;color:rgba(255,255,255,.45);transition:transform .22s var(--sp);flex-shrink:0;font-family:"Geist Mono",monospace}
+.tl-entry.open .tl-chv{transform:rotate(90deg)}
+.tl-period{font-family:"Geist Mono",monospace;font-size:18px;color:rgba(255,255,255,.55);white-space:nowrap}
+.tl-role{font-size:21px;color:rgba(255,255,255,.7);font-weight:500}
+.tl-co{font-size:21px;color:rgba(255,255,255,.7)}
+.tl-sep{color:rgba(255,255,255,.35);font-size:18px}
+.tl-badge{font-family:"Geist Mono",monospace;font-size:16px;color:rgba(139,92,246,.6);margin-left:auto;flex-shrink:0;white-space:nowrap}
+.tl-body{max-height:0;overflow:hidden;transition:max-height .4s ease}
+.tl-entry.open .tl-body{max-height:600px}
+.tl-inner{padding:0 16px 20px 0;display:flex;flex-direction:column;gap:14px}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mcsm{background:rgba(255,255,255,.02);border:1px solid var(--b);border-radius:8px;padding:10px 13px}
+.mcsm .v{font-size:28px;color:#fff;font-weight:600;margin-bottom:2px}
+.mcsm .l{font-size:16px;color:rgba(255,255,255,.55);font-family:"Geist Mono",monospace;text-transform:uppercase;letter-spacing:.05em}
+.fti{font-family:"Geist Mono",monospace;font-size:18px;color:rgba(255,255,255,.35);padding:3px 0;display:flex;align-items:flex-start;gap:8px;line-height:1.6}
+.fti .mk{color:rgba(255,255,255,.35);flex-shrink:0}
+.fti .vl{color:rgba(255,255,255,.55)}
+.etags{display:flex;flex-wrap:wrap;gap:5px}
+.etag{font-family:"Geist Mono",monospace;font-size:16px;color:rgba(255,255,255,.45);background:rgba(255,255,255,.02);border:1px solid var(--b);border-radius:4px;padding:2px 8px}
+/* SKILLS */
+.sk-fade{opacity:.08!important;filter:blur(1px)!important}
+.sk-glow{border-color:rgba(139,92,246,.5)!important;box-shadow:0 0 18px rgba(139,92,246,.08)!important}
+.sgrid{display:flex;flex-direction:column;gap:20px}
+.scat{font-family:"Geist Mono",monospace;font-size:16px;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.45);margin-bottom:8px}
+.spills{display:flex;flex-wrap:wrap;gap:7px}
+.spill-item{font-size:20px;font-family:"Geist Mono",monospace;padding:6px 14px;border:1px solid rgba(255,255,255,.06);border-radius:999px;color:rgba(255,255,255,.7);cursor:none;transition:border-color .2s,color .2s,box-shadow .3s;user-select:none}
+.spill-item:hover{border-color:rgba(139,92,246,.5);color:#fff;box-shadow:0 0 12px rgba(139,92,246,.15)}
+.spill-item.feat{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);color:rgba(255,255,255,.7)}
+/* EDUCATION */
+.egrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ecard{padding:22px}
+.edeg{font-size:23px;font-weight:500;margin-bottom:5px;color:#fff}
+.esch{font-size:20px;color:rgba(255,255,255,.7)}
+.eyr{font-family:"Geist Mono",monospace;font-size:16px;color:rgba(255,255,255,.45);margin-top:10px}
+/* FOOTER */
+#footer{position:relative;overflow:hidden;border-top:1px solid var(--b);margin-top:40px;background:#050505;z-index:1}
+.fbg{position:absolute;inset:0;background-image:url('./footer-bg.jfif');background-size:cover;background-position:center;opacity:.06;pointer-events:none}
+.finner{max-width:1320px;margin:0 auto;padding:72px 40px 44px;position:relative;z-index:1}
+.fhd{font-size:clamp(48px,8.0vw,93px);font-weight:700;letter-spacing:-.03em;margin-bottom:36px;line-height:1.1;color:#fff}
+.fhd .acc{color:var(--acc)}
+.cbtns{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:44px}
+.cbtn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border:1px solid var(--b);border-radius:10px;font-size:21px;color:rgba(255,255,255,.8);cursor:none;text-decoration:none;background:rgba(255,255,255,.02);transition:background .2s,border-color .2s,color .2s,transform .25s var(--sp)}
+.cbtn:hover{background:rgba(139,92,246,.08);border-color:rgba(139,92,246,.35);color:#fff;transform:translateY(-2px)}
+.copy{font-size:18px;color:rgba(255,255,255,.35);font-family:"Geist Mono",monospace}
+/* MODAL */
+#mov{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(14px);z-index:9000;opacity:0;pointer-events:none;transition:opacity .35s}
+#mov.open{opacity:1;pointer-events:all}
+#mdr{position:fixed;top:0;right:0;width:900px;max-width:100vw;height:100vh;background:#0d0d0f;border-left:1px solid var(--b);z-index:9001;transform:translateX(100%);transition:transform .5s var(--sp);overflow-y:auto;padding:28px 40px;display:flex;flex-direction:column;gap:12px}
+#mov.open #mdr{transform:translateX(0)}
+.mclose{position:absolute;top:18px;right:18px;width:34px;height:34px;border-radius:50%;border:1px solid var(--b);background:transparent;color:rgba(255,255,255,.7);cursor:none;display:flex;align-items:center;justify-content:center;transition:color .2s,border-color .2s}
+.mclose:hover{color:#fff;border-color:rgba(255,255,255,.3)}
+.mbadge{display:inline-flex;font-family:"Geist Mono",monospace;font-size:16px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.7);background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:999px;padding:3px 10px;width:fit-content}
+.mtitle{font-size:28px;font-weight:700;letter-spacing:-.02em;color:#fff}
+.msub{font-size:16px;color:rgba(255,255,255,.7)}
+.mmets{display:flex;gap:8px;flex-wrap:wrap}
+.mmet{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:7px;padding:8px 14px;font-family:"Geist Mono",monospace;font-size:20px;color:var(--acc)}
+.sdiv{height:1px;background:var(--b)}
+.ssecs{display:flex;flex-direction:column;gap:10px}
+.slbl{font-family:"Geist Mono",monospace;font-size:12px;text-transform:uppercase;letter-spacing:.15em;color:rgba(139,92,246,.9);margin-bottom:4px}
+.stxt{font-size:15px;line-height:1.5;color:rgba(255,255,255,.75)}
+/* COMMAND PALETTE */
+#cov{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(24px);z-index:9500;opacity:0;pointer-events:none;transition:opacity .2s;display:flex;align-items:flex-start;justify-content:center;padding-top:15vh}
+#cov.open{opacity:1;pointer-events:all}
+#cpal{width:100%;max-width:500px;background:#111;border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.9)}
+.cinwrap{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.05)}
+.cpfx{font-family:"Geist Mono",monospace;font-size:23px;color:rgba(255,255,255,.45);flex-shrink:0}
+#cin{background:transparent;border:none;outline:none;font-family:"Geist Mono",monospace;font-size:23px;color:#fff;flex:1;caret-color:var(--acc)}
+#cin::placeholder{color:rgba(255,255,255,.45)}
+#clist{max-height:280px;overflow-y:auto;padding:6px}
+.citem{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;cursor:none;transition:background .15s}
+.citem.sel,.citem:hover{background:rgba(139,92,246,.1)}
+.cico{width:26px;height:26px;border-radius:6px;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;font-size:18px;color:rgba(255,255,255,.55);flex-shrink:0}
+.cnm{font-size:21px;color:#fff;flex:1}
+.chnt{font-family:"Geist Mono",monospace;font-size:16px;color:rgba(255,255,255,.45);flex-shrink:0}
+/* TOAST */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(12px);background:rgba(15,15,18,.96);backdrop-filter:blur(20px);border:1px solid rgba(139,92,246,.3);border-radius:10px;padding:9px 18px;font-size:21px;color:#fff;z-index:99990;opacity:0;transition:opacity .3s,transform .3s var(--sp);pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s var(--sp),transform .7s var(--sp)}
+.reveal.active{opacity:1;transform:translateY(0)}
+/* MOBILE */
+@media(max-width:768px){
+  #hero{grid-template-columns:1fr;padding:90px 20px 36px;gap:28px;max-width:100%}
+  .phwrap{order:-1;align-items:flex-start;flex-direction:row;gap:24px}
+  .phframe{max-width:100px;aspect-ratio:1;border-radius:50%}
+  .psec{padding:52px 20px}
+  #hdr{padding:14px 20px}
+  .finner{padding:52px 20px 36px}
+  .pgrid{grid-template-columns:1fr}
+  .egrid{grid-template-columns:1fr}
+  .mgrid{grid-template-columns:1fr 1fr}
+  #mdr{top:auto;bottom:0;right:0;left:0;width:100%;height:85vh;border-left:none;border-top:1px solid var(--b);border-radius:20px 20px 0 0;transform:translateY(100%);padding:28px 20px}
+  #mov.open #mdr{transform:translateY(0)}
+  body{cursor:auto}
+  #cur,#cur-ring{display:none}
+  a,button,.spill-item,.card,.tl-hdr,.lbtn,.cbtn{cursor:pointer}
+  .tl-badge{display:none}
+  .mwrap{overflow:hidden;background:rgba(255,255,255,.02);border-top:1px solid var(--b);border-bottom:1px solid var(--b);padding:8px 0;margin:0 0 64px 0;width:100%}
+}
+@media(min-width:769px) and (pointer:coarse){body{cursor:auto}#cur,#cur-ring{display:none}}
+
+/* Case image placeholders */
+.cimg-wrap{border-radius:9px;overflow:hidden;background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.06);height:96px;position:relative;display:flex;align-items:center;justify-content:center;transition:border-color .3s,background .3s}
+.card:hover .cimg-wrap{border-color:rgba(139,92,246,.25);background:rgba(139,92,246,.03)}
+.ci{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;pointer-events:none}
+.ci.loaded{opacity:1}
+.ci-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;pointer-events:none;transition:opacity .3s}
+.cimg-wrap.has-img .ci-ph{opacity:0}
+.ci-ico{font-size:29px;opacity:.15}
+.ci-nm{font-family:"Geist Mono",monospace;font-size:13px;color:rgba(255,255,255,.35);letter-spacing:.06em}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 120vh;
+  background: url('./main-bg.jfif') center/cover no-repeat;
+  opacity: 0.08;
+  z-index: -2;
+  pointer-events: none;
+  transform: translateY(var(--bg-y, 0));
+  will-change: transform;
+}
+#cursor{position:fixed;top:-100px;left:-100px;width:8px;height:8px;background:#fff;border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);transition:width .2s,height .2s;mix-blend-mode:difference}
+</style>
+</head>
+<body>
+<canvas id="grain" aria-hidden="true"></canvas>
+<div id="spb" aria-hidden="true"></div>
+<div id="cur" aria-hidden="true"></div>
+<div id="cur-ring" aria-hidden="true"><span>View</span></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- HEADER -->
+<header id="hdr">
+  <div class="spill">
+    <div class="pd-w"><div class="pd"></div><div class="pr"></div></div>
+    <span class="en">Open to opportunities</span>
+    <span class="ru">Открыт к предложениям</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <span style="font-family:'Geist Mono',monospace;font-size:18px;color:rgba(255,255,255,.35)" title="Command palette">⌘K</span>
+    <div class="ltog">
+      <button class="lbtn active" data-lang="en">EN</button>
+      <button class="lbtn" data-lang="ru">RU</button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section id="hero">
+  <div>
+    <h1 class="h1 reveal">
+      <span class="en">Ivan Gurin</span>
+      <span class="ru">Иван Гурин</span>
+    </h1>
+    <p class="hsub reveal" style="transition-delay:.06s">Growth Manager &amp; Product Builder</p>
+    <p class="hbod reveal" style="transition-delay:.12s">
+      <span class="en">I <strong>build &amp; automate products</strong> — from EdTech to GovTech.<br>I turn <strong>3 hrs of routine into 30 min</strong> with Python &amp; no-code.<br>I create systems on <strong>zero budget</strong>: AI integrations, bots, architecture.</span>
+      <span class="ru">Строю и <strong>автоматизирую продукты</strong> — от EdTech до GovTech.<br>Превращаю <strong>3 часа рутины в 30 минут</strong> через Python и No-code.<br>Создаю системы с <strong>нулевым бюджетом</strong>: AI-интеграции, боты, архитектура.</span>
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap" class="reveal" style="transition-delay:.18s">
+      <a href="https://t.me/Ivan_gurin_1" target="_blank" rel="noopener" class="bp">
+        <i class="fa-brands fa-telegram"></i>
+        <span class="en">Message on Telegram</span>
+        <span class="ru">Написать в Telegram</span>
+        <span class="arr">→</span>
+      </a>
+      <a href="./Ivan_Gurin_CV.pdf" target="_blank" download class="bo" id="cv-dl" style="text-decoration:none">
+        <span class="en">Download CV</span>
+        <span class="ru">Скачать резюме</span>
+        <i class="fa-solid fa-arrow-down"></i>
+      </a>
+    </div>
+  </div>
+  <div class="phwrap reveal" style="transition-delay:.08s">
+    <div class="phframe card"><img src="./profile.jpg" alt="Ivan Gurin"/></div>
+    <div class="tzw" id="tzw">
+      <div class="tzd g" id="tzd"></div>
+      <span id="tzt"></span>
+      <span style="color:rgba(255,255,255,.35)">&middot;</span>
+      <span id="tzs" style="font-size:18px"></span>
+    </div>
+  </div>
+</section>
+
+<div class="mwrap" aria-hidden="true">
+      <div class="mtrack">
+        <span class="en">Project Management // Automation // Python // AI Integrations // CustDev // HADI Cycles // System Architecture // No-Code // 3D Voxel // Project Management // Automation // Python // AI Integrations // CustDev // HADI Cycles // System Architecture // No-Code // 3D Voxel //</span><span aria-hidden="true" class="en">Project Management // Automation // Python // AI Integrations // CustDev // HADI Cycles // System Architecture // No-Code // 3D Voxel // Project Management // Automation // Python // AI Integrations // CustDev // HADI Cycles // System Architecture // No-Code // 3D Voxel //</span>
+        <span class="ru">Управление проектами // Автоматизация // Python // AI-интеграции // CustDev // HADI-циклы // Архитектура // No-Code // 3D Voxel // Управление проектами // Автоматизация // Python // AI-интеграции // CustDev // HADI-циклы // Архитектура // No-Code // 3D Voxel //</span><span aria-hidden="true" class="ru">Управление проектами // Автоматизация // Python // AI-интеграции // CustDev // HADI-циклы // Архитектура // No-Code // 3D Voxel // Управление проектами // Автоматизация // Python // AI-интеграции // CustDev // HADI-циклы // Архитектура // No-Code // 3D Voxel //</span>
+      </div>
+    </div>
+
+<!-- PROJECTS -->
+<section id="projects" class="psec">
+  <div class="slabel reveal">
+    <span class="en">Proof of Work</span>
+    <span class="ru">Кейсы</span>
+  </div>
+  <div class="pgrid">
+
+    <!-- 1: NutriAI -->
+    <div class="card pcard reveal" data-modal="nutriai" data-skills="llm,ai,python" tabindex="0" role="button" style="transition-delay:.04s">
+      <span class="pbadge">R&amp;D &middot; AI</span>
+      <div><div class="ptitle">NutriAI</div>
+      <div class="pdesc" style="margin-top:4px"><span class="en">Local LLM nutrition assistant — zero server costs, shipped in 48h.</span><span class="ru">Локальный AI-нутрициолог — нулевые серверные расходы, за 48ч.</span></div></div>
+      <div class="mrow"><span class="mchip">48h TTM</span><span class="mchip">$0 server</span><span class="mchip">LLM Agents</span></div>
+      <div class="cimg-wrap" style="margin-top:16px;height:220px;border-radius:10px;overflow:hidden;border:1px dashed rgba(255,255,255,.1);"><img style="cursor:zoom-in;width:100%;height:100%;object-fit:cover;display:block;" class="ci" src="./cases/case-nutriai.jpg" alt="nutriai"></div>
+      <div class="vcase"><span class="en">View case &rarr;</span><span class="ru">Смотреть кейс &rarr;</span></div>
+    </div>
+
+    <!-- 2: GovTech -->
+    <div class="card pcard reveal" data-modal="govtech" data-skills="python,sql,automation,govtech" tabindex="0" role="button" style="transition-delay:.08s">
+      <span class="pbadge">GovTech &middot; <span class="en">Automation</span><span class="ru">Автоматизация</span></span>
+      <div><div class="ptitle">Zero-Budget Workspace</div>
+      <div class="pdesc" style="margin-top:4px"><span class="en">Reporting automation for 2,000+ orgs on zero server budget.</span><span class="ru">Автоматизация отчётности для 2000+ организаций без бюджета.</span></div></div>
+      <div class="mrow"><span class="mchip">3h→30m</span><span class="mchip">3K reports/yr</span><span class="mchip">1.7M ₽ saved</span></div>
+      <div class="cimg-wrap" style="margin-top:16px;height:220px;border-radius:10px;overflow:hidden;border:1px dashed rgba(255,255,255,.1);"><img style="cursor:zoom-in;width:100%;height:100%;object-fit:cover;display:block;" class="ci" src="./cases/case-govtech.jpg" alt="govtech"></div>
+      <div class="vcase"><span class="en">View case &rarr;</span><span class="ru">Смотреть кейс &rarr;</span></div>
+    </div>
+
+    <!-- 3: GrowEasy -->
+    <div class="card pcard reveal" data-modal="groweasy" data-skills="custdev,hadi,product,growth" tabindex="0" role="button" style="transition-delay:.12s">
+      <span class="pbadge">EdTech &middot; B2C</span>
+      <div><div class="ptitle">GrowEasy</div>
+      <div class="pdesc" style="margin-top:4px"><span class="en">Online Minecraft school from zero to profitable in 6 months.</span><span class="ru">Онлайн-школа на базе Minecraft. От нуля до прибыли за 6 месяцев.</span></div></div>
+      <div class="mrow"><span class="mchip">~$5K ARR</span><span class="mchip">$200 LTV</span><span class="mchip">&gt;30% margin</span></div>
+      <div class="cimg-wrap" style="margin-top:16px;height:220px;border-radius:10px;overflow:hidden;border:1px dashed rgba(255,255,255,.1);"><img style="cursor:zoom-in;width:100%;height:100%;object-fit:cover;display:block;" class="ci" src="./cases/case-groweasy.jpg" alt="groweasy"></div>
+      <div class="vcase"><span class="en">View case &rarr;</span><span class="ru">Смотреть кейс &rarr;</span></div>
+    </div>
+
+    <!-- 4: AI Real Estate -->
+    <div class="card pcard reveal" data-modal="realestate" data-skills="ai,llm,automation,nocode" tabindex="0" role="button" style="transition-delay:.06s">
+      <span class="pbadge">AI &middot; B2B</span>
+      <div><div class="ptitle">AI Real Estate (US)</div>
+      <div class="pdesc" style="margin-top:4px"><span class="en">AI integration &amp; automation for a private US real estate agency.</span><span class="ru">AI-интеграция и автоматизация для риелторской компании в США.</span></div></div>
+      <div class="mrow"><span class="mchip">$35/hr</span><span class="mchip">5 no-code</span><span class="mchip">Consulting</span></div>
+      <div class="cimg-wrap" style="margin-top:16px;height:220px;border-radius:10px;overflow:hidden;border:1px dashed rgba(255,255,255,.1);"><img style="cursor:zoom-in;width:100%;height:100%;object-fit:cover;display:block;" class="ci" src="./cases/case-realestate.jpg" alt="realestate"></div>
+      <div class="vcase"><span class="en">View case &rarr;</span><span class="ru">Смотреть кейс &rarr;</span></div>
+    </div>
+
+    <!-- 5: Hazbin Party -->
+    <div class="card pcard reveal" data-modal="hazbin" data-skills="hadi,product,scrum" tabindex="0" role="button" style="transition-delay:.1s">
+      <span class="pbadge">GameDev &middot; Event</span>
+      <div><div class="ptitle">Hazbin Party &amp; AdventureRoad</div>
+      <div class="pdesc" style="margin-top:4px"><span class="en">12 unique games, quest mechanics &amp; 3D models for a 2500+ guest festival.</span><span class="ru">12 уникальных игр, квесты и 3D-модели для фестиваля на 2500+ гостей.</span></div></div>
+      <div class="mrow"><span class="mchip">2500+ guests</span><span class="mchip">12 games</span><span class="mchip">11-person team</span></div>
+      <div class="cimg-wrap" style="margin-top:16px;height:220px;border-radius:10px;overflow:hidden;border:1px dashed rgba(255,255,255,.1);"><img style="cursor:zoom-in;width:100%;height:100%;object-fit:cover;display:block;" class="ci" src="./cases/case-hazbin.jpg" alt="hazbin"></div>
+      <div class="vcase"><span class="en">View case &rarr;</span><span class="ru">Смотреть кейс &rarr;</span></div>
+    </div>
+
+    <!-- 6: AI CNC Plotter -->
+    <div class="card pcard reveal" data-modal="plotter" data-skills="ai,llm,python,automation" tabindex="0" role="button" style="transition-delay:.14s">
+      <span class="pbadge">Hardware &middot; R&amp;D</span>
+      <div><div class="ptitle">AI-CNC Plotter</div>
+      <div class="pdesc" style="margin-top:4px"><span class="en">Hardware pipeline: audio lecture → AI transcription → CNC writes in my handwriting.</span><span class="ru">Аудио лекции → AI-транскрибация → ЧПУ пишет моим почерком.</span></div></div>
+      <div class="mrow"><span class="mchip">100% auto</span><span class="mchip">50 users</span><span class="mchip">AI transcription</span></div>
+      <div class="cimg-wrap" style="margin-top:16px;height:220px;border-radius:10px;overflow:hidden;border:1px dashed rgba(255,255,255,.1);"><img style="cursor:zoom-in;width:100%;height:100%;object-fit:cover;display:block;" class="ci" src="./cases/case-plotter.jpg" alt="plotter"></div>
+      <div class="vcase"><span class="en">View case &rarr;</span><span class="ru">Смотреть кейс &rarr;</span></div>
+    </div>
+
+    <!-- 7: Bionic Prosthesis (full width) -->
+    <div class="card pcard reveal" data-modal="prosthesis" data-skills="arduino" tabindex="0" role="button" style="transition-delay:.1s">
+      <span class="pbadge">Hardware &middot; MedTech</span>
+      <div>
+        <div class="ptitle">
+          <span class="en">Bionic EMG-prosthesis</span>
+          <span class="ru">Бионический EMG-протез</span>
+        </div>
+        <div class="pdesc" style="margin-top:4px">
+          <span class="en">Arduino + EMG sensor wrist prosthesis prototype — school R&D project built at MIREA engineering class.</span>
+          <span class="ru">Прототип протеза запястья на Arduino + EMG-датчиках. Школьный R&D-проект, инженерный класс МИРЭА.</span>
+        </div>
+      </div>
+      <div class="mrow">
+        <span class="mchip">C++ / Arduino</span>
+        <span class="mchip">EMG sensors</span>
+        <span class="mchip">MVP prototype</span>
+      </div>
+      <div class="cimg-wrap" style="margin-top:16px;height:220px;border-radius:10px;overflow:hidden;border:1px dashed rgba(255,255,255,.1);">
+        <img style="cursor:zoom-in;width:100%;height:100%;object-fit:cover;display:block;" class="ci" src="./cases/case-prosthesis.jpg" alt="prosthesis">
+      </div>
+      <div class="vcase">
+        <span class="en">View case &rarr;</span>
+        <span class="ru">Смотреть кейс &rarr;</span>
+      </div>
+    </div></div>
+
+  </div>
+</section>
+
+<!-- EXPERIENCE TIMELINE -->
+<section id="experience" class="psec">
+  <div class="slabel reveal" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <span><span class="en">Experience</span><span class="ru">Опыт работы</span></span>
+    <div style="display:flex;gap:24px">
+      <button class="ecbtn" id="exp-all" style="font-family:'Geist Mono',monospace;font-size:18px;color:rgba(255,255,255,.45);background:none;border:none;cursor:none;letter-spacing:.05em"><span class="en">[Expand all]</span><span class="ru">[Развернуть]</span></button>
+      <button class="ecbtn" id="col-all" style="font-family:'Geist Mono',monospace;font-size:18px;color:rgba(255,255,255,.45);background:none;border:none;cursor:none;letter-spacing:.05em"><span class="en">[Collapse all]</span><span class="ru">[Свернуть]</span></button>
+    </div>
+  </div>
+  <div style="margin-bottom:32px"></div>
+  <div class="tl reveal" style="transition-delay:.06s">
+
+    <!-- Entry 1: GovTech -->
+    <div class="tl-entry" data-skills="python,sql,automation,govtech,scrum">
+      <div class="tl-dot"></div>
+      <div class="tl-hdr" role="button" tabindex="0" aria-expanded="false">
+        <span class="tl-chv">›</span>
+        <span class="tl-period"><span class="en">Jun 2024 – Present</span><span class="ru">Июнь 2024 – н.в.</span></span>
+        <span class="tl-sep">&middot;</span>
+        <span class="tl-role"><span class="en">Project Manager</span><span class="ru">Руководитель проектов</span></span>
+        <span class="tl-sep">&middot;</span>
+        <span class="tl-co"><span class="en">Moscow Dept. of Education</span><span class="ru">ДОгМ / МЦВП РСП</span></span>
+        <span class="tl-badge">1.7M ₽/yr saved</span>
+      </div>
+      <div class="tl-body">
+        <div class="tl-inner">
+          <div class="mgrid">
+            <div class="mcsm"><div class="v">1.7M ₽</div><div class="l"><span class="en">saved/yr</span><span class="ru">экономия/год</span></div></div>
+            <div class="mcsm"><div class="v">3K+</div><div class="l"><span class="en">reports/yr</span><span class="ru">отчётов/год</span></div></div>
+            <div class="mcsm"><div class="v">2000+</div><div class="l"><span class="en">organizations</span><span class="ru">организаций</span></div></div>
+          </div>
+          <div>
+            <div class="fti"><span class="mk">├</span><span class="vl"><span class="en">Automated reporting &amp; payroll via Python — saving 1.7M RUB/yr</span><span class="ru">Автоматизация отчётности через Python — экономия 1.7 млн руб./год</span></span></div>
+            <div class="fti"><span class="mk">├</span><span class="vl"><span class="en">Built ‘Oracle’ MVP integrating 40+ data sources for 2,000+ orgs</span><span class="ru">Разрабатываю MVP «Оракул» для агрегации данных из 40+ источников</span></span></div>
+            <div class="fti"><span class="mk">└</span><span class="vl"><span class="en">Deployed Testograf for 352 presidential competitions (audited 16 IT solutions)</span><span class="ru">Внедрил Testograf для 352 президентских олимпиад (аудит 16 IT-решений)</span></span></div>
+          </div>
+          <div class="etags"><span class="etag">Python</span><span class="etag">SQL</span><span class="etag">Yandex.Cloud</span><span class="etag">Automation</span><span class="etag">Scrum</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entry 2: GrowEasy -->
+    <div class="tl-entry" data-skills="custdev,hadi,product,abtesting,growth">
+      <div class="tl-dot"></div>
+      <div class="tl-hdr" role="button" tabindex="0" aria-expanded="false">
+        <span class="tl-chv">›</span>
+        <span class="tl-period"><span class="en">Feb 2023 – Apr 2025</span><span class="ru">Фев 2023 – Апр 2025</span></span>
+        <span class="tl-sep">&middot;</span>
+        <span class="tl-role"><span class="en">Product Manager &amp; Founder</span><span class="ru">Продакт-менеджер, основатель</span></span>
+        <span class="tl-sep">&middot;</span>
+        <span class="tl-co">GrowEasy</span>
+        <span class="tl-badge">500K ₽ revenue</span>
+      </div>
+      <div class="tl-body">
+        <div class="tl-inner">
+          <div class="mgrid">
+            <div class="mcsm"><div class="v">500K ₽</div><div class="l"><span class="en">revenue</span><span class="ru">выручка</span></div></div>
+            <div class="mcsm"><div class="v">20K ₽</div><div class="l">LTV</div></div>
+            <div class="mcsm"><div class="v">40+</div><div class="l">CustDev</div></div>
+          </div>
+          <div>
+            <div class="fti"><span class="mk">├</span><span class="vl"><span class="en">Built adaptive Minecraft-based methodology (programming, design, English)</span><span class="ru">Разработал адаптивную методологию на базе Minecraft</span></span></div>
+            <div class="fti"><span class="mk">├</span><span class="vl"><span class="en">Reached 500K ₽ revenue, &gt;30% margin in 6 months</span><span class="ru">Достиг 500K ₽ выручки и маржи &gt;30% за 6 месяцев</span></span></div>
+            <div class="fti"><span class="mk">└</span><span class="vl"><span class="en">Applied A/B testing, CustDev, Discovery to grow conversion</span><span class="ru">Применял A/B-тестинг, CustDev, Discovery для роста конверсии</span></span></div>
+          </div>
+          <div class="etags"><span class="etag">CustDev</span><span class="etag">Unit Economics</span><span class="etag">A/B Testing</span><span class="etag">B2C</span><span class="etag">Discovery</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entry 3: AdventureRoad -->
+    <div class="tl-entry" data-skills="hadi,scrum,product">
+      <div class="tl-dot"></div>
+      <div class="tl-hdr" role="button" tabindex="0" aria-expanded="false">
+        <span class="tl-chv">›</span>
+        <span class="tl-period"><span class="en">Aug 2022 – Sep 2024</span><span class="ru">Авг 2022 – Сен 2024</span></span>
+        <span class="tl-sep">&middot;</span>
+        <span class="tl-role"><span class="en">Project Manager</span><span class="ru">Менеджер проектов</span></span>
+        <span class="tl-sep">&middot;</span>
+        <span class="tl-co">AdventureRoad</span>
+        <span class="tl-badge">12 products shipped</span>
+      </div>
+      <div class="tl-body">
+        <div class="tl-inner">
+          <div class="mgrid">
+            <div class="mcsm"><div class="v">2500+</div><div class="l"><span class="en">event guests</span><span class="ru">гостей</span></div></div>
+            <div class="mcsm"><div class="v">12</div><div class="l"><span class="en">unique games</span><span class="ru">игр</span></div></div>
+            <div class="mcsm"><div class="v">11</div><div class="l"><span class="en">team size</span><span class="ru">команда</span></div></div>
+          </div>
+          <div>
+            <div class="fti"><span class="mk">├</span><span class="vl"><span class="en">Developed 12 unique games across universes; managed pricing &amp; financial planning</span><span class="ru">Разработал 12 уникальных игр; ценообразование и финпланирование</span></span></div>
+            <div class="fti"><span class="mk">├</span><span class="vl"><span class="en">Coordinated team of 11 (scriptwriters, designers, developers)</span><span class="ru">Координировал команду 11 чел. (сценаристы, дизайнеры, разработчики)</span></span></div>
+            <div class="fti"><span class="mk">└</span><span class="vl"><span class="en">Built B2B partnerships with festivals, anti-cafes &amp; 3D printing studios</span><span class="ru">Выстроил B2B-партнёрства с фестивалями и студиями 3D-печати</span></span></div>
+          </div>
+          <div class="etags"><span class="etag">HADI</span><span class="etag">Event Management</span><span class="etag">Team Lead</span><span class="etag">Game Design</span><span class="etag">B2B</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entry 4: Freelance -->
+    <div class="tl-entry" data-skills="ai,llm,nocode">
+      <div class="tl-dot" style="background:rgba(255,255,255,.2);box-shadow:none"></div>
+      <div class="tl-hdr" role="button" tabindex="0" aria-expanded="false">
+        <span class="tl-chv">›</span>
+        <span class="tl-period">2021 – 2023</span>
+        <span class="tl-sep">&middot;</span>
+        <span class="tl-role"><span class="en">AI Consultant / 3D Modeler</span><span class="ru">AI-консультант / 3D-моделлер</span></span>
+        <span class="tl-sep">&middot;</span>
+        <span class="tl-co"><span class="en">Freelance / R&amp;D</span><span class="ru">Фриланс / R&amp;D</span></span>
+      </div>
+      <div class="tl-body">
+        <div class="tl-inner">
+          <div>
+            <div class="fti"><span class="mk">├</span><span class="vl"><span class="en">Managed AI integration project for US real estate company ($35/hr)</span><span class="ru">Внедрение AI в бизнес-процессы риелторской компании в США</span></span></div>
+            <div class="fti"><span class="mk">├</span><span class="vl"><span class="en">Built 5 no-code solutions for competitor parsing &amp; content automation</span><span class="ru">5 no-code решений для парсинга конкурентов и автоматизации контента</span></span></div>
+            <div class="fti"><span class="mk">└</span><span class="vl"><span class="en">Designed &amp; optimized 3D voxel models for 4 Game Jams</span><span class="ru">3D voxel модели для 4 Game Jam</span></span></div>
+          </div>
+          <div class="etags"><span class="etag">AI/LLM</span><span class="etag">No-Code</span><span class="etag">3D Voxel</span><span class="etag">Deepfakes</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- SKILLS -->
+<section id="skills" class="psec">
+  <div class="slabel reveal"><span class="en">Hard Skills &amp; Stack</span><span class="ru">Навыки &amp; Стек</span></div>
+  <div class="sgrid reveal" style="transition-delay:.06s">
+    <div>
+      <div class="scat"><span class="en">Product &amp; Management</span><span class="ru">Продукт &amp; Управление</span></div>
+      <div class="spills">
+        <span class="spill-item" data-skill="custdev">CustDev</span>
+        <span class="spill-item" data-skill="hadi">HADI Cycles</span>
+        <span class="spill-item" data-skill="abtesting">A/B Testing</span>
+        <span class="spill-item" data-skill="product">Discovery</span>
+        <span class="spill-item" data-skill="growth">Growth Hacking</span>
+        <span class="spill-item" data-skill="scrum">Agile / Scrum</span>
+        <span class="spill-item" data-skill="product">Gamification</span>
+      </div>
+    </div>
+    <div>
+      <div class="scat"><span class="en">Technology &amp; Data</span><span class="ru">Технологии &amp; Данные</span></div>
+      <div class="spills">
+        <span class="spill-item" data-skill="python">Python</span>
+        <span class="spill-item" data-skill="sql">SQL</span>
+        <span class="spill-item feat" data-skill="llm">AI Agents / LLMs</span>
+        <span class="spill-item" data-skill="automation">Excel / Macros</span>
+        <span class="spill-item" data-skill="automation">Yandex.Cloud</span>
+        <span class="spill-item" data-skill="nocode">No-Code</span>
+      </div>
+    </div>
+    <div>
+      <div class="scat"><span class="en">Engineering &amp; Design</span><span class="ru">Инженерия &amp; Дизайн</span></div>
+      <div class="spills">
+        <span class="spill-item" data-skill="automation">System Architecture</span>
+        <span class="spill-item" data-skill="automation">Automation</span>
+        <span class="spill-item" data-skill="arduino">3D Voxel</span>
+        <span class="spill-item" data-skill="arduino">Arduino / C++</span>
+        <span class="spill-item" data-skill="llm">Prompt Engineering</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EDUCATION -->
+<section id="education" class="psec">
+  <div class="slabel reveal"><span class="en">Education</span><span class="ru">Образование</span></div>
+  <div class="egrid">
+    <!-- MGPU first (left) -->
+    <div class="card ecard reveal" style="transition-delay:.05s">
+      <div class="edeg"><span class="en">Educational Systems Management</span><span class="ru">Управление образовательными системами</span></div>
+      <div class="esch"><span class="en">Moscow City University (Master’s)</span><span class="ru">МГПУ (Магистратура)</span></div>
+      <div class="eyr">2025 – <span class="en">present</span><span class="ru">н.в.</span></div>
+    </div>
+    <!-- MSU second (right) -->
+    <div class="card ecard reveal" style="transition-delay:.1s">
+      <div class="edeg"><span class="en">Faculty of Sociology, Dept. of Economics &amp; Management</span><span class="ru">Факультет социологии, каф. экономики</span></div>
+      <div class="esch"><span class="en">Lomonosov Moscow State University (Bachelor’s)</span><span class="ru">МГУ им. М.В. Ломоносова (Бакалавр)</span></div>
+      <div class="eyr">2021 – 2025</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer id="footer">
+  <div class="fbg"></div>
+  <div class="finner">
+    <h2 class="fhd reveal">
+      <span class="en">Let’s build something<br><span class="acc">exceptional.</span></span>
+      <span class="ru">Давайте создадим<br><span class="acc">сильный продукт.</span></span>
+    </h2>
+    <div class="cbtns reveal" style="transition-delay:.06s">
+      <a href="https://t.me/Ivan_gurin_1" target="_blank" rel="noopener" class="cbtn"><i class="fa-brands fa-telegram" style="color:#38bdf8"></i>Telegram</a>
+      <button class="cbtn" id="cp-em"><i class="fa-solid fa-envelope"></i><span class="en">Copy Email</span><span class="ru">Скопировать Email</span></button>
+      <a href="./Ivan_Gurin_CV.pdf" target="_blank" download class="cbtn" id="cv-dl2" style="text-decoration:none"><i class="fa-solid fa-file-pdf" style="color:#f87171"></i><span class="en">Download CV (PDF)</span><span class="ru">Скачать резюме (PDF)</span></a>
+    </div>
+    <div class="copy"><span class="en">&copy; 2025 Ivan Gurin &middot; Built with intent</span><span class="ru">&copy; 2025 Иван Гурин &middot; Создано с намерением</span></div>
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div id="mov" role="dialog" aria-modal="true">
+  <div id="mdr">
+    <button class="mclose" id="mcl"><i class="fa-solid fa-xmark"></i></button>
+    <div class="cimg-wrap" id="mimg-wrap" style="height:300px;border-radius:12px;overflow:hidden;margin-bottom:12px;flex-shrink:0"><img id="mimg" style="width:100%;height:100%;object-fit:cover;display:block;" src=""></div>
+    <div class="mbadge" id="mbadge"></div>
+    <div class="mtitle" id="mtitle"></div>
+    <div class="msub" id="msub"></div>
+    <div class="mmets" id="mmets"></div>
+    <div class="sdiv"></div>
+    <div class="ssecs" id="mstar"></div>
+  </div>
+</div>
+
+<!-- COMMAND PALETTE -->
+<div id="cursor"></div>
+<div id="cov" role="dialog" aria-modal="true">
+  <div id="cpal">
+    <div class="cinwrap">
+      <span class="cpfx">&gt;_</span>
+      <input type="text" id="cin" placeholder="Type a command..." autocomplete="off" spellcheck="false"/>
+    </div>
+    <div id="clist" role="listbox"></div>
+  </div>
+</div>
+
+<script>
+
+// CV data
+var CV={name:"Ivan Gurin",title:"Growth Manager & Product Builder",contact:{tg:"@Ivan_gurin_1",tgUrl:"https://t.me/Ivan_gurin_1",email:"snegurin.200@gmail.com",location:"Moscow, Russia"},skills:{product:["CustDev","Discovery","HADI Cycles","A/B Testing","Agile/Scrum","Gamification"],tech:["Python","SQL","AI/LLMs","Yandex.Cloud","No-Code"],engineering:["System Architecture","Automation","3D Voxel","Arduino/C++","Prompt Engineering"]},education:[{degree:"Educational Systems Management",school:"Moscow City University",years:"2025–present"},{degree:"Faculty of Sociology",school:"Lomonosov MSU",years:"2021–2025"}]};
+
+if(location.search.includes('format=json')){document.body.innerHTML='<pre style="background:#09090b;color:#22c55e;font-family:monospace;padding:2rem;white-space:pre-wrap;min-height:100vh;">'+JSON.stringify(CV,null,2)+'</pre>';throw 0;}
+
+// LANG
+var lang='en';
+function setLang(l){lang=l;document.documentElement.setAttribute('lang',l);localStorage.setItem('lang',l);document.querySelectorAll('.lbtn').forEach(function(b){b.classList.toggle('active',b.dataset.lang===l);});document.title=l==='en'?'Ivan Gurin — Product Builder':'Иван Гурин — Продакт-билдер';}
+setLang(lang);
+document.querySelectorAll('.lbtn').forEach(function(b){b.addEventListener('click',function(){setLang(b.dataset.lang);});});
+
+// LENIS
+var lenis;try{lenis=new Lenis({duration:1.2,easing:function(t){return Math.min(1,1.001-Math.pow(2,-10*t));}});(function r(t){lenis.raf(t);requestAnimationFrame(r);})(0);}catch(e){}
+function goTo(sel,off){off=off===undefined?-80:off;var el=document.querySelector(sel);if(!el)return;if(lenis)lenis.scrollTo(el,{offset:off});else el.scrollIntoView({behavior:'smooth'});}
+
+// GRAIN
+(function(){var c=document.getElementById('grain'),ctx=c.getContext('2d'),w,h,f=0;function rsz(){w=c.width=innerWidth;h=c.height=innerHeight;}rsz();addEventListener('resize',rsz);function draw(){f++;if(f%2){requestAnimationFrame(draw);return;}var id=ctx.createImageData(w,h),d=id.data;for(var i=0;i<d.length;i+=4){var v=Math.random()*255|0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=Math.random()*35|0;}ctx.putImageData(id,0,0);requestAnimationFrame(draw);}draw();})();
+
+
+var cur=document.getElementById('cursor');
+if(window.matchMedia('(pointer:fine)').matches){
+  document.body.style.cursor='none';
+  document.addEventListener('mousemove',function(e){
+    if(cur){ cur.style.left=e.clientX+'px'; cur.style.top=e.clientY+'px'; }
+  });
+  // Disable default cursor on clickable elements to not clash
+  var style = document.createElement('style');
+  style.innerHTML = 'a, button, .card, [role="button"], input { cursor: none !important; }';
+  document.head.appendChild(style);
+}
+
+// SCROLL PROGRESS
+var spb=document.getElementById('spb');addEventListener('scroll',function(){var s=scrollY,t=document.documentElement.scrollHeight-innerHeight;spb.style.width=(t>0?(s/t)*100:0)+'%';document.body.style.setProperty('--bg-y', (t>0?-(s/t)*20:0)+'vh');},{passive:true});
+
+// HEADER HIDE/SHOW
+var hdr=document.getElementById('hdr'),py=0,hh=false,tk=false;
+function upH(){var y=scrollY;if(y>80){if(y>py&&!hh){hdr.classList.add('hidden');hh=true;}else if(y<py&&hh){hdr.classList.remove('hidden');hh=false;}}else{hdr.classList.remove('hidden');hh=false;}py=y;tk=false;}
+addEventListener('scroll',function(){if(!tk){requestAnimationFrame(upH);tk=true;}},{passive:true});
+
+
+var cur=document.getElementById('cursor');
+if(window.matchMedia('(pointer:fine)').matches){
+  document.body.style.cursor='none';
+  document.addEventListener('mousemove',function(e){
+    if(cur){ cur.style.left=e.clientX+'px'; cur.style.top=e.clientY+'px'; }
+  });
+  // Disable default cursor on clickable elements to not clash
+  var style = document.createElement('style');
+  style.innerHTML = 'a, button, .card, [role="button"], input { cursor: none !important; }';
+  document.head.appendChild(style);
+}
+
+// SCROLL REVEAL
+var obs=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('active');obs.unobserve(e.target);}});},{threshold:.06,rootMargin:'0px 0px -24px 0px'});
+document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
+
+// TIMEZONE
+function updTZ(){var now=new Date();var fmt=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Moscow',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});var parts=fmt.formatToParts(now);function g(t){return(parts.find(function(p){return p.type===t;})||{}).value||'00';}var h=parseInt(g('hour')),m=g('minute'),s=parseInt(g('second'));var colon=s%2===0?'<span class="blink">:</span>':'<span style="opacity:0">:</span>';document.getElementById('tzt').innerHTML='MSK '+String(h).padStart(2,'0')+colon+m;var av=h>=9&&h<22;document.getElementById('tzd').className='tzd '+(av?'g':'gr');var txt=av?(lang==='en'?'Available now':'На связи'):(lang==='en'?'Will reply soon':'Отвечу скоро');document.getElementById('tzs').textContent=txt;}
+updTZ();setInterval(updTZ,1000);
+
+// TIMELINE ACCORDION
+function togTL(en,op){if(op===undefined)op=!en.classList.contains('open');en.classList.toggle('open',op);en.querySelector('.tl-hdr').setAttribute('aria-expanded',String(op));}
+document.querySelectorAll('.tl-hdr').forEach(function(h){h.addEventListener('click',function(){togTL(h.closest('.tl-entry'));});h.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();togTL(h.closest('.tl-entry'));}});});
+document.getElementById('exp-all').addEventListener('click',function(){document.querySelectorAll('.tl-entry').forEach(function(e){togTL(e,true);});});
+document.getElementById('col-all').addEventListener('click',function(){document.querySelectorAll('.tl-entry').forEach(function(e){togTL(e,false);});});
+
+// SKILLS CROSS-FILTER
+var SKM={python:['python','automation','govtech'],sql:['sql','python'],llm:['llm','ai'],ai:['ai','llm'],custdev:['custdev','product','growth'],hadi:['hadi','custdev'],scrum:['scrum','product'],product:['product','custdev','hadi'],automation:['automation','python'],growth:['growth','custdev'],nocode:['nocode','ai'],abtesting:['abtesting','product'],arduino:['arduino'],govtech:['govtech','python']};
+var ftargets=[].concat([].slice.call(document.querySelectorAll('.tl-entry')),[].slice.call(document.querySelectorAll('.card[data-modal]')));
+document.querySelectorAll('.spill-item').forEach(function(pill){
+  pill.addEventListener('mouseenter',function(){var rel=SKM[pill.dataset.skill]||[pill.dataset.skill];ftargets.forEach(function(t){var ts=(t.dataset.skills||'').split(',').map(function(s){return s.trim();});var match=rel.some(function(r){return ts.includes(r);});t.classList.toggle('sk-fade',!match);t.classList.toggle('sk-glow',match);});});
+  pill.addEventListener('mouseleave',function(){ftargets.forEach(function(t){t.classList.remove('sk-fade','sk-glow');});});
+});
+
+// MODAL DATA (7 cases)
+var MD={
+  nutriai:{badge:{en:'R&D · AI Project',ru:'R&D · AI Проект'},title:'NutriAI',sub:{en:'Local LLM nutrition assistant — privacy-first, zero cloud',ru:'Локальный AI-нутрициолог — без облака'},metrics:['48h TTM','$0 server','LLM Agents','On-device'],star:{S:{en:'Manual calorie tracking is tedious; most users quit within a week. Existing apps are expensive SaaS with cloud dependency.',ru:'Ручной подсчёт калорий — утомительно, большинство бросают за неделю. Существующие приложения — дорогой SaaS с зависимостью от облака.'},T:{en:'Build a local, privacy-first AI nutrition assistant with zero server costs.',ru:'Создать локального AI-нутрициониста с нулевыми серверными расходами.'},A:{en:'Architected a multi-agent LLM pipeline running entirely on-device. Selected optimal local model. Built agentic workflow for macro computation.',ru:'Спроектировал мульти-агентный LLM-пайплайн на устройстве. Выбрал оптимальную локальную модель. Реализовал воркфлоу для расчёта БЖУ.'},R:{en:'Shipped in 48 hours. $0 server costs forever. Private AI coaching without cloud dependency.',ru:'Запущен за 48 часов. $0 серверных затрат навсегда. Приватный AI-коучинг без облака.'}}},
+  govtech:{badge:{en:'GovTech · Automation',ru:'GovTech · Автоматизация'},title:'Zero-Budget Workspace',sub:{en:'Cloud infra & document automation for Moscow Dept. of Education',ru:'Облачная инфраструктура и автоматизация документооборота для ДОгМ'},metrics:['3h→30m/report','3K reports/yr','1.7M ₽ saved','$0 budget'],star:{S:{en:'Data from 7+ spreadsheets collected manually; one table took up to 3h per employee. Required a cloud system with zero budget.',ru:'Данные собирались вручную из 7+ таблиц. Одна таблица обрабатывалась до 3 часов. Требовалась облачная система на отечественном ПО без бюджета.'},T:{en:'Optimize data collection for 2,000+ organizations; minimize manual labor; reduce processing time.',ru:'Оптимизировать сбор данных для 2000+ организаций; минимизировать ручной труд; сократить время обработки.'},A:{en:'Designed database architecture on Yandex.Disk. Wrote Python scripts & macros for auto-sorting. Deployed VK/TG bots for routine automation.',ru:'Спроектировал архитектуру БД на Яндекс.Диске. Написал Python-скрипты и макросы. Внедрил VK/TG-ботов для автоматизации рутины.'},R:{en:'Processing time: 3h → 30min. 3,000 reports/yr automated. Saved 1.7M RUB/yr.',ru:'Время обработки: 3ч → 30мин. 3000 отчётов/год автоматизировано. Экономия 1.7 млн руб./год.'}}},
+  groweasy:{badge:{en:'EdTech · B2C',ru:'EdTech · B2C'},title:'GrowEasy',sub:{en:'Online coding school for kids — from zero to profitable in 6 months',ru:'Онлайн-школа на базе Minecraft — от нуля до прибыли за 6 месяцев'},metrics:['~$5K ARR','$200 LTV','>30% margin','6 months'],star:{S:{en:'Children’s EdTech is oversaturated with cookie-cutter courses; students lose interest quickly.',ru:'Детский EdTech перенасыщен шаблонными курсами; ученики быстро теряют интерес.'},T:{en:'Build an online school from scratch, find PMF, reach profitability in 6 months.',ru:'Создать школу с нуля, найти PMF, выйти в прибыль за 6 месяцев.'},A:{en:'40+ CustDev interviews. Adaptive Minecraft curriculum (programming, design, English). Sales funnel & subscription model.',ru:'40+ CustDev-интервью. Адаптивная методология Minecraft. Подписная модель.'},R:{en:'Profitable in 6 months. ~$5K ARR. LTV $200. Margin >30%.',ru:'Окупаемость за 6 месяцев. ~$5K ARR. LTV $200. Маржа >30%.'}}},
+  realestate:{badge:{en:'AI · B2B Consulting',ru:'AI · B2B Консалтинг'},title:'AI Real Estate (US)',sub:{en:'AI integration & automation for a US real estate agency',ru:'AI-интеграция и автоматизация для риелторского агентства в США'},metrics:['$35/hr','5 no-code solutions','B2B Consulting'],star:{S:{en:'US real estate agency used manual methods for content creation, competitor monitoring, and pricing.',ru:'Американское агентство использовало ручные методы для контента, мониторинга и ценообразования.'},T:{en:'Automate routine processes with AI and train business owners to use modern tools.',ru:'Автоматизировать рутинные процессы с помощью AI и обучить владельцев современным инструментам.'},A:{en:'Developed training program. Designed 5 no-code & Python solutions for competitor parsing. Set up video/voiceover generation.',ru:'Разработал программу обучения. 5 no-code + Python решений для парсинга. Генерация видео/войсовера.'},R:{en:'Founding team trained. Content generation & monitoring fully automated.',ru:'Команда основателей обучена. Генерация контента и мониторинг переведены на автоматические рельсы.'}}},
+  hazbin:{badge:{en:'GameDev · Event',ru:'GameDev · Event'},title:'Hazbin Party & AdventureRoad',sub:{en:'Immersive festival & commercial D&D project',ru:'Иммерсивный фестиваль и коммерческий D&D-проект'},metrics:['2500+ guests','12 unique games','11-person team'],star:{S:{en:'Large-scale event needed engaging content, unique mechanics, and coordinated team management.',ru:'Масштабный ивент требовал вовлекающий контент, уникальные механики и координацию команды.'},T:{en:'Design game economy, quests, 3D models; organize coordinated work of an 11-person team.',ru:'Спроектировать игровую экономику, квесты, 3D-модели; организовать команду 11 чел.'},A:{en:'Competitive analysis (500+ row database). Developed 12 games & 3D models. Led team of 11 (teachers, scriptwriters, designers). Built B2B with anti-cafes & 3D studios.',ru:'Конкурентный анализ (500+ строк). 12 игр и 3D-моделей. Команда 11 чел. B2B с антикафе и студиями 3D-печати.'},R:{en:'Festival attracted 2,500+ guests. Effective team management system built. All games successfully launched.',ru:'Фестиваль собрал 2500+ гостей. Система управления командой построена. Игры запущены.'}}},
+  plotter:{badge:{en:'Hardware · R&D',ru:'Hardware · R&D'},title:'AI-CNC Plotter',sub:{en:'Full automation of university lecture note-taking',ru:'Полная автоматизация написания конспектов в университете'},metrics:['100% automated','50 regular users','30 orders/month','AI transcription'],star:{S:{en:'Writing mandatory handwritten university notes consumed huge amounts of time daily.',ru:'Написание обязательных рукописных конспектов в университете занимало огромное количество времени.'},T:{en:'Fully automate note creation while preserving individual handwriting style.',ru:'Полностью автоматизировать написание конспектов с сохранением почерка.'},A:{en:'Designed & built a CNC plotter. Pipeline: audio recording → AI transcription → AI summarizer → G-code → plotter writes in my handwriting.',ru:'Спроектировал и собрал ЧПУ-плоттер. Пайплайн: аудио → AI-транскрибация → саммаризатор → G-code → плоттер пишет моим почерком.'},R:{en:'Process fully automated. 50 regular clients with ~30 orders/month each.',ru:'Процесс полностью автоматизирован. 50 постоянных клиентов по ~30 заказов/мес.'}}},
+  prosthesis:{badge:{en:'Hardware · MedTech',ru:'Hardware · MedTech'},title:'Бионический EMG-протез',sub:{en:'School R&D project: functional bionic wrist prosthesis prototype',ru:'Школьный R&D: рабочий прототип бионического протеза запястья'},metrics:['C++ / Arduino','EMG sensors','Working MVP'],star:{S:{en:'Engineering class at MIREA campus required building a complex, physically functioning project.',ru:'Инженерный класс на базе МИРЭА требовал создания сложного работающего инженерного проекта.'},T:{en:'Design and assemble a functional prototype capable of reading human body signals.',ru:'Спроектировать и собрать рабочий прототип, считывающий сигналы тела.'},A:{en:'Studied EMG sensor operation. Wrote C++ code for Arduino to read signals & control servos. Assembled physical wrist prosthesis model.',ru:'Изучил EMG-датчики. Написал C++ для Arduino. Собрал физическую модель протеза запястья.'},R:{en:'Working MVP prototype of bionic prosthesis reacting to muscle contractions.',ru:'Работающий MVP-прототип, реагирующий на мышечные сокращения.'}}}
+};
+
+function openModal(key){var d=MD[key];if(!d)return;var L={en:['Situation','Task','Action','Result'],ru:['Ситуация','Задача','Действия','Результат']};document.getElementById('mimg').src='./cases/case-'+key+'.jpg';document.getElementById('mbadge').textContent=d.badge[lang];document.getElementById('mtitle').textContent=d.title;document.getElementById('msub').textContent=d.sub[lang];document.getElementById('mmets').innerHTML=d.metrics.map(function(m){return'<div class="mmet">'+m+'</div>';}).join('');var ks=['S','T','A','R'];document.getElementById('mstar').innerHTML=ks.map(function(k,i){return'<div><div class="slbl">'+L[lang][i]+'</div><div class="stxt">'+d.star[k][lang]+'</div></div>'+(i<3?'<div class="sdiv"></div>':'');}).join('');document.getElementById('mov').classList.add('open');document.body.style.overflow='hidden';}
+function closeModal(){document.getElementById('mov').classList.remove('open');document.body.style.overflow='';}
+document.getElementById('mcl').addEventListener('click',closeModal);
+document.getElementById('mov').addEventListener('click',function(e){if(e.target===document.getElementById('mov'))closeModal();});
+document.querySelectorAll('.card[data-modal]').forEach(function(c){c.addEventListener('click',function(){openModal(c.dataset.modal);});c.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();openModal(c.dataset.modal);}});});
+
+// COMMAND PALETTE
+var CMDS=[
+  {id:'contact',ic:'fa-paper-plane',n:{en:'Contact',ru:'Написать'},h:'scroll',fn:function(){closePal();goTo('#footer',0);}},
+  {id:'resume',ic:'fa-download',n:{en:'Download Resume',ru:'Скачать резюме'},h:'dl',fn:function(){closePal();dlCV();}},
+  {id:'nutriai',ic:'fa-flask',n:{en:'NutriAI',ru:'NutriAI'},h:'view',fn:function(){closePal();openModal('nutriai');}},
+  {id:'govtech',ic:'fa-building',n:{en:'GovTech Workspace',ru:'GovTech Workspace'},h:'view',fn:function(){closePal();openModal('govtech');}},
+  {id:'groweasy',ic:'fa-graduation-cap',n:{en:'GrowEasy',ru:'GrowEasy'},h:'view',fn:function(){closePal();openModal('groweasy');}},
+  {id:'exp',ic:'fa-briefcase',n:{en:'Experience',ru:'Опыт'},h:'scroll',fn:function(){closePal();goTo('#experience');}},
+  {id:'skills',ic:'fa-code',n:{en:'Skills',ru:'Навыки'},h:'scroll',fn:function(){closePal();goTo('#skills');}},
+  {id:'lang',ic:'fa-language',n:{en:'Switch to Russian',ru:'Switch to English'},h:'switch',fn:function(){closePal();setLang(lang==='en'?'ru':'en');}}
+];
+var palOpen=false,selIdx=0,fCmds=CMDS.slice();
+var cov=document.getElementById('cov'),cin=document.getElementById('cin'),clist=document.getElementById('clist');
+function renderCmds(list){fCmds=list;clist.innerHTML=list.map(function(c,i){return'<div class="citem'+(i===selIdx?' sel':'')+'" data-i="'+i+'" role="option"><div class="cico"><i class="fa-solid '+c.ic+'"></i></div><div class="cnm">'+c.n[lang]+'</div><div class="chnt">↵ '+c.h+'</div></div>';}).join('');clist.querySelectorAll('.citem').forEach(function(item,i){item.addEventListener('click',function(){selIdx=i;fCmds[i].fn();});item.addEventListener('mouseenter',function(){selIdx=i;hlCmd();});});}
+function hlCmd(){clist.querySelectorAll('.citem').forEach(function(item,i){item.classList.toggle('sel',i===selIdx);});}
+function openPal(){palOpen=true;cov.classList.add('open');cin.value='';selIdx=0;renderCmds(CMDS);setTimeout(function(){cin.focus();},40);}
+function closePal(){palOpen=false;cov.classList.remove('open');}
+cin.addEventListener('input',function(){var q=cin.value.toLowerCase().trim();var f=q?CMDS.filter(function(c){return c.n.en.toLowerCase().includes(q)||c.n.ru.toLowerCase().includes(q)||c.id.includes(q);}):CMDS;selIdx=0;renderCmds(f);});
+cin.addEventListener('keydown',function(e){if(e.key==='ArrowDown'){e.preventDefault();selIdx=Math.min(selIdx+1,fCmds.length-1);hlCmd();}else if(e.key==='ArrowUp'){e.preventDefault();selIdx=Math.max(selIdx-1,0);hlCmd();}else if(e.key==='Enter'&&fCmds[selIdx])fCmds[selIdx].fn();else if(e.key==='Escape')closePal();});
+addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();palOpen?closePal():openPal();}if(e.key==='Escape'){if(palOpen)closePal();else closeModal();}});
+cov.addEventListener('click',function(e){if(e.target===cov)closePal();});
+
+// TOAST
+var tt;function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){el.classList.remove('show');},2400);}
+
+// COPY
+
+document.getElementById('cp-em').addEventListener('click',function(){
+    var email = 'snegurin.200@gmail.com';
+    var fallback = function() {
+        var textArea = document.createElement("textarea");
+        textArea.value = email;
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try { document.execCommand('copy'); } catch(e){}
+        document.body.removeChild(textArea);
+        toast('✓ ' + email + ' copied!');
+    };
+    if (!navigator.clipboard) {
+        fallback();
+    } else {
+        navigator.clipboard.writeText(email).then(function(){
+            toast('✓ ' + email + ' copied!');
+        }).catch(fallback);
+    }
+});
+
+
+// CV DOWNLOAD (PDF)
+
+
+
+
+
+// LIGHTBOX
+function openLightbox(src){
+  var lb=document.createElement('div');
+  lb.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:28px;opacity:0;transition:opacity 0.3s;';
+  var img=document.createElement('img');
+  img.src=src;
+  img.style.cssText='max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;transform:scale(0.95);transition:transform 0.3s;';
+  lb.appendChild(img);
+  document.body.appendChild(lb);
+  // trigger layout
+  void lb.offsetWidth;
+  lb.style.opacity='1';
+  img.style.transform='scale(1)';
+  lb.onclick=function(){
+    lb.style.opacity='0';
+    img.style.transform='scale(0.95)';
+    setTimeout(()=>document.body.removeChild(lb),300);
+  };
+}
+
+// CONSOLE EASTER EGG
+setTimeout(function(){console.log('%c IVAN GURIN ','background:#8b5cf6;color:#fff;font-size:23px;font-weight:bold;padding:4px 12px;border-radius:4px;');console.log('%c Growth Manager & Product Builder ','color:#8b5cf6;font-size:20px;');console.log('%c → tg: @Ivan_gurin_1 ','color:#38bdf8;font-size:20px;');console.log('%c → email: snegurin.200@gmail.com ','color:#4ade80;font-size:18px;');console.log('%c → add ?format=json to URL for CV data ','color:#a78bfa;font-size:18px;');},1500);
+
+// Case image placeholders
+
+
+
+
+
+</script>
+</body>
+</html>
